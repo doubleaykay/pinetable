@@ -37,7 +37,7 @@ DATA_TO_SEND = (
 COURSE_TITLE_REGEX = re.compile(
     "(.*?)(?:\s\(((?:Remote|On Campus|Individualized)[^\)]*)\))?(\(.*\))?$")
 
-
+# 
 def crawl_timetable(term):
     """
     Timetable HTML is malformed. All table rows except the head do not have
@@ -83,7 +83,7 @@ def crawl_timetable(term):
         course_data.append({
             "term": _convert_timetable_term_to_term(
                 tds[0].get_text(strip=True)),
-            # "crn": int(tds[1].get_text(strip=True)),
+            "crn": int(tds[1].get_text(strip=True)),
             "program": tds[2].get_text(strip=True),
             "number": number,
             "subnumber": subnumber,
@@ -98,12 +98,13 @@ def crawl_timetable(term):
             "world_culture": tds[13].get_text(strip=True),
             "distribs": _parse_distribs(tds[14].get_text(strip=True)),
             "limit": int_or_none(tds[15].get_text(strip=True)),
-            # "enrollment": int_or_none(tds[16].get_text(strip=True)),
+            "enrollment": int_or_none(tds[16].get_text(strip=True)),
             "status": tds[17].get_text(strip=True),
         })
+        
     return course_data
 
-
+# 
 def _parse_crosslisted_courses(xlist_text):
     crosslisted_courses = []
     for course_text in (xlist_text.split(",") if xlist_text else []):
@@ -118,7 +119,7 @@ def _parse_crosslisted_courses(xlist_text):
         })
     return crosslisted_courses
 
-
+# 
 def _convert_timetable_term_to_term(timetable_term):
     assert len(timetable_term) == 6
     assert timetable_term[:2] == "20"
@@ -127,15 +128,15 @@ def _convert_timetable_term_to_term(timetable_term):
     return "{year}{season}".format(
         year=year, season={1: "W", 3: "S", 6: "X", 9: "F"}[month])
 
-
+# 
 def _parse_distribs(distribs_text):
     return distribs_text.split(" or ") if distribs_text else []
 
-
+# 
 def _parse_instructors(instructors):
     return instructors.split(", ") if instructors else []
 
-
+# 
 def _get_timetable_term_code(term):
     year, term = split_term(term)
     return "20{year}0{term_number}".format(
@@ -144,9 +145,9 @@ def _get_timetable_term_code(term):
     )
 
 
-def import_timetable(timetable_data):
-    for course_data in timetable_data:
-        _import_course_data(course_data)
+# def import_timetable(timetable_data):
+#     for course_data in timetable_data:
+#         _import_course_data(course_data)
 
 
 # @transaction.atomic
@@ -158,69 +159,69 @@ def import_timetable(timetable_data):
 #     _update_instructors(course_data, offering)
 
 
-def _get_or_import_course(course_data):
-    course, _ = Course.objects.get_or_create(
-        department=course_data["program"],
-        number=course_data["number"],
-        subnumber=course_data["subnumber"],
-        defaults={
-            "title": course_data["title"],
-            "source": Course.SOURCES.TIMETABLE,
-        },
-    )
-    return course
+# def _get_or_import_course(course_data):
+#     course, _ = Course.objects.get_or_create(
+#         department=course_data["program"],
+#         number=course_data["number"],
+#         subnumber=course_data["subnumber"],
+#         defaults={
+#             "title": course_data["title"],
+#             "source": Course.SOURCES.TIMETABLE,
+#         },
+#     )
+#     return course
 
 
-def _update_or_import_offering(course_data, course):
-    offering, _ = CourseOffering.objects.update_or_create(
-        course=course,
-        section=course_data["section"],
-        term=course_data["term"],
-        defaults={
-            "period": course_data["period"],
-            "limit": course_data["limit"],
-        },
-    )
-    return offering
+# def _update_or_import_offering(course_data, course):
+#     offering, _ = CourseOffering.objects.update_or_create(
+#         course=course,
+#         section=course_data["section"],
+#         term=course_data["term"],
+#         defaults={
+#             "period": course_data["period"],
+#             "limit": course_data["limit"],
+#         },
+#     )
+#     return offering
 
 
-def _update_crosslisted_courses(course_data, course):
-    crosslisted_courses_data = course_data["crosslisted"]
-    for crosslisted_course_data in crosslisted_courses_data:
-        # We ignore missing courses because they should be created later in the
-        # timetable importing process.
-        crosslisted_course = Course.objects.filter(
-            department=crosslisted_course_data["program"],
-            number=crosslisted_course_data["number"],
-            subnumber=crosslisted_course_data["subnumber"],
-        ).first()
-        if crosslisted_course:
-            course.crosslisted_courses.add(crosslisted_course)
+# def _update_crosslisted_courses(course_data, course):
+#     crosslisted_courses_data = course_data["crosslisted"]
+#     for crosslisted_course_data in crosslisted_courses_data:
+#         # We ignore missing courses because they should be created later in the
+#         # timetable importing process.
+#         crosslisted_course = Course.objects.filter(
+#             department=crosslisted_course_data["program"],
+#             number=crosslisted_course_data["number"],
+#             subnumber=crosslisted_course_data["subnumber"],
+#         ).first()
+#         if crosslisted_course:
+#             course.crosslisted_courses.add(crosslisted_course)
 
 
-def _update_distribs(course_data, course):
-    for distrib_name in course_data["distribs"]:
-        distrib, _ = DistributiveRequirement.objects.get_or_create(
-            name=distrib_name,
-            defaults={
-                "distributive_type": DistributiveRequirement.DISTRIBUTIVE,
-            },
-        )
-        course.distribs.add(distrib)
+# def _update_distribs(course_data, course):
+#     for distrib_name in course_data["distribs"]:
+#         distrib, _ = DistributiveRequirement.objects.get_or_create(
+#             name=distrib_name,
+#             defaults={
+#                 "distributive_type": DistributiveRequirement.DISTRIBUTIVE,
+#             },
+#         )
+#         course.distribs.add(distrib)
 
-    if course_data["world_culture"]:
-        distrib, _ = DistributiveRequirement.objects.get_or_create(
-            name=course_data["world_culture"],
-            defaults={
-                "distributive_type": DistributiveRequirement.WORLD_CULTURE,
-            },
-        )
-        course.distribs.add(distrib)
+#     if course_data["world_culture"]:
+#         distrib, _ = DistributiveRequirement.objects.get_or_create(
+#             name=course_data["world_culture"],
+#             defaults={
+#                 "distributive_type": DistributiveRequirement.WORLD_CULTURE,
+#             },
+#         )
+#         course.distribs.add(distrib)
 
 
-def _update_instructors(course_data, offering):
-    for instructor_name in course_data["instructor"]:
-        instructor, _ = Instructor.objects.get_or_create(
-            name=instructor_name,
-        )
-        offering.instructors.add(instructor)
+# def _update_instructors(course_data, offering):
+#     for instructor_name in course_data["instructor"]:
+#         instructor, _ = Instructor.objects.get_or_create(
+#             name=instructor_name,
+#         )
+#         offering.instructors.add(instructor)
