@@ -32,21 +32,27 @@
 
     <script>
         const columnDefs = [
-            { field: "term" },
             {
                 field: "program",
-                filter: 'agTextColumnFilter'
+                filter: 'agTextColumnFilter',
+                pinned: 'left'
             },
-            { field: "number" },
-            { field: "subnumber" },
-            { field: "section" },
+            { field: "num", pinned: 'left' },
             { field: "title" },
+            { field: "instructor" },
+
+
+
+            // { field: "number" },
+            // { field: "subnumber" },
+            { field: "section" },
+            
             { field: "delivery_mode" },
             { field: "crosslisted" },
             { field: "period" },
             { field: "room" },
             { field: "building" },
-            { field: "instructor" },
+            
             { field: "world_culture" },
             {
                 field: "distribs",
@@ -59,7 +65,9 @@
             { field: "status" },
             { field: "id" },
             { field: "crn" },
-            { field: "enrollment" }
+            { field: "enrollment" },
+            { field: "term" }
+            
         ];
 
         function populate_ag(data) {
