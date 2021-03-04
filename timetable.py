@@ -1,25 +1,7 @@
 import re
-
-# from django.db import transaction
-
-# from apps.web.models import (
-#     Course,
-#     CourseOffering,
-#     DistributiveRequirement,
-#     Instructor,
-# )
-
-# from apps.spider.utils import (
-from utils import (
-    int_or_none,
-    parse_number_and_subnumber,
-    retrieve_soup,
-)
-# from lib.terms import split_term
-# from lib.constants import CURRENT_TERM
-
-from terms import split_term
-from constants import CURRENT_TERM
+from bs4 import BeautifulSoup
+import json
+from urllib.request import urlopen
 
 
 TIMETABLE_URL = (
@@ -37,7 +19,13 @@ DATA_TO_SEND = (
 COURSE_TITLE_REGEX = re.compile(
     "(.*?)(?:\s\(((?:Remote|On Campus|Individualized)[^\)]*)\))?(\(.*\))?$")
 
-# 
+DEPARTMENT_CORRECTIONS = {
+    "M&SS": "QSS",
+    "WGST": "WGSS"
+}
+
+term_regex = re.compile("^(?P<year>[0-9]{2})(?P<term>[WSXFwsxf])$")
+
 def crawl_timetable(term):
     """
     Timetable HTML is malformed. All table rows except the head do not have
@@ -104,7 +92,7 @@ def crawl_timetable(term):
         
     return course_data
 
-# 
+
 def _parse_crosslisted_courses(xlist_text):
     crosslisted_courses = []
     for course_text in (xlist_text.split(",") if xlist_text else []):
@@ -119,7 +107,7 @@ def _parse_crosslisted_courses(xlist_text):
         })
     return crosslisted_courses
 
-# 
+
 def _convert_timetable_term_to_term(timetable_term):
     assert len(timetable_term) == 6
     assert timetable_term[:2] == "20"
@@ -128,15 +116,15 @@ def _convert_timetable_term_to_term(timetable_term):
     return "{year}{season}".format(
         year=year, season={1: "W", 3: "S", 6: "X", 9: "F"}[month])
 
-# 
+
 def _parse_distribs(distribs_text):
     return distribs_text.split(" or ") if distribs_text else []
 
-# 
+
 def _parse_instructors(instructors):
     return instructors.split(", ") if instructors else []
 
-# 
+
 def _get_timetable_term_code(term):
     year, term = split_term(term)
     return "20{year}0{term_number}".format(
@@ -145,83 +133,29 @@ def _get_timetable_term_code(term):
     )
 
 
-# def import_timetable(timetable_data):
-#     for course_data in timetable_data:
-#         _import_course_data(course_data)
+def int_or_none(string):
+    return int(string) if string else None
 
 
-# @transaction.atomic
-# def _import_course_data(course_data):
-#     course = _get_or_import_course(course_data)
-#     offering = _update_or_import_offering(course_data, course)
-#     _update_crosslisted_courses(course_data, course)
-#     _update_distribs(course_data, course)
-#     _update_instructors(course_data, offering)
+def parse_number_and_subnumber(numbers_text):
+    numbers = numbers_text.split(".")
+    if len(numbers) == 2:
+        return (int(n) for n in numbers)
+    else:
+        assert len(numbers) == 1
+        return int(numbers[0]), None
 
 
-# def _get_or_import_course(course_data):
-#     course, _ = Course.objects.get_or_create(
-#         department=course_data["program"],
-#         number=course_data["number"],
-#         subnumber=course_data["subnumber"],
-#         defaults={
-#             "title": course_data["title"],
-#             "source": Course.SOURCES.TIMETABLE,
-#         },
-#     )
-#     return course
+def retrieve_soup(url, data=None, preprocess=lambda x: x):
+    return BeautifulSoup(
+        preprocess(urlopen(url, data=data).read()), "html.parser")
 
 
-# def _update_or_import_offering(course_data, course):
-#     offering, _ = CourseOffering.objects.update_or_create(
-#         course=course,
-#         section=course_data["section"],
-#         term=course_data["term"],
-#         defaults={
-#             "period": course_data["period"],
-#             "limit": course_data["limit"],
-#         },
-#     )
-#     return offering
-
-
-# def _update_crosslisted_courses(course_data, course):
-#     crosslisted_courses_data = course_data["crosslisted"]
-#     for crosslisted_course_data in crosslisted_courses_data:
-#         # We ignore missing courses because they should be created later in the
-#         # timetable importing process.
-#         crosslisted_course = Course.objects.filter(
-#             department=crosslisted_course_data["program"],
-#             number=crosslisted_course_data["number"],
-#             subnumber=crosslisted_course_data["subnumber"],
-#         ).first()
-#         if crosslisted_course:
-#             course.crosslisted_courses.add(crosslisted_course)
-
-
-# def _update_distribs(course_data, course):
-#     for distrib_name in course_data["distribs"]:
-#         distrib, _ = DistributiveRequirement.objects.get_or_create(
-#             name=distrib_name,
-#             defaults={
-#                 "distributive_type": DistributiveRequirement.DISTRIBUTIVE,
-#             },
-#         )
-#         course.distribs.add(distrib)
-
-#     if course_data["world_culture"]:
-#         distrib, _ = DistributiveRequirement.objects.get_or_create(
-#             name=course_data["world_culture"],
-#             defaults={
-#                 "distributive_type": DistributiveRequirement.WORLD_CULTURE,
-#             },
-#         )
-#         course.distribs.add(distrib)
-
-
-# def _update_instructors(course_data, offering):
-#     for instructor_name in course_data["instructor"]:
-#         instructor, _ = Instructor.objects.get_or_create(
-#             name=instructor_name,
-#         )
-#         offering.instructors.add(instructor)
+def split_term(term):
+    term_data = term_regex.match(term)
+    if term_data and term_data.group("year") and term_data.group("term"):
+        year = int(term_data.group("year"))
+        term = term_data.group("term").upper()
+        return year, term
+    else:
+        raise ValueError
