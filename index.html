@@ -71,9 +71,13 @@
             const gridDiv = document.querySelector('#ag-table');
             new agGrid.Grid(gridDiv, gridOptions);
             gridOptions.api.setRowData(data);
-            gridOptions.cacheQuickFilter = cacheActive;
         };
 
+        fetch("./build_data.json")
+            .then(response => {
+                return response.json();
+            })
+            .then(data => console.log(data));
 
         fetch("./courses.json")
             .then(response => {
