@@ -88,6 +88,7 @@ def crawl_timetable(term):
             "limit": int_or_none(tds[15].get_text(strip=True)),
             "enrollment": int_or_none(tds[16].get_text(strip=True)),
             "status": tds[17].get_text(strip=True),
+            "num": f'{number:03d}.{subnumber:02d}' if subnumber else f'{number:03d}'
         })
         
     return course_data
