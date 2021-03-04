@@ -19,8 +19,9 @@
     <div class="container">
         <div class="row">
             <h1>Pinetable</h1>
-            <div id="example-table"></div>
-            <!-- <div id="ag-table"></div> -->
+            <input type="text" oninput="onQuickFilterChanged()" id="quickFilter" placeholder="Search for Anything">
+        </div>
+        <div class="row">
             <div id="ag-table" style="height: 600px; width:100%;" class="ag-theme-balham"></div>
         </div>
     </div>
@@ -32,53 +33,47 @@
 
     <script>
         const columnDefs = [
-            {
-                field: "program",
-                filter: 'agTextColumnFilter',
-                pinned: 'left'
-            },
-            { field: "num", pinned: 'left' },
-            { field: "title" },
-            { field: "instructor" },
-
-
-
+            { field: "program", sortable: true, pinned: 'left', checkboxSelection: true },
+            { field: "num", sortable: true, pinned: 'left' },
+            { field: "title", sortable: true, pinned: 'left' },
+            { field: "instructor", sortable: true },
             // { field: "number" },
             // { field: "subnumber" },
             { field: "section" },
-            
             { field: "delivery_mode" },
             { field: "crosslisted" },
-            { field: "period" },
+            { field: "period", sortable: true },
             { field: "room" },
             { field: "building" },
-            
             { field: "world_culture" },
-            {
-                field: "distribs",
-                filter: 'agTextColumnFilter'
-            },
-            {
-                field: "limit",
-                filter: 'agNumberColumnFilter',
-            },
+            { field: "distribs" },
+            { field: "limit", sortable: true },
+            { field: "enrollment", sortable: true },
             { field: "status" },
-            { field: "id" },
+            // { field: "id" },
             { field: "crn" },
-            { field: "enrollment" },
             { field: "term" }
-            
         ];
 
+        const gridOptions = {
+            columnDefs: columnDefs,
+            // rowData: data,
+            enableCellTextSelection: true,
+            ensureDomOrder: true,
+            rowSelection: 'multiple'
+        };
+
+        function onQuickFilterChanged() {
+            gridOptions.api.setQuickFilter(document.getElementById('quickFilter').value);
+        }
+
         function populate_ag(data) {
-            const gridOptions = {
-                columnDefs: columnDefs,
-                rowData: data
-            };
             const gridDiv = document.querySelector('#ag-table');
             new agGrid.Grid(gridDiv, gridOptions);
-
+            gridOptions.api.setRowData(data);
+            gridOptions.cacheQuickFilter = cacheActive;
         };
+
 
         fetch("./courses.json")
             .then(response => {
