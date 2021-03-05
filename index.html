@@ -12,16 +12,37 @@
 
     <script src="https://unpkg.com/ag-grid-community/dist/ag-grid-community.min.js"></script>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/slim-select/1.27.0/slimselect.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/slim-select/1.27.0/slimselect.min.css" rel="stylesheet">
+    </link>
+
     <title>Pinetable</title>
 </head>
 
 <body>
     <div class="container">
-        <div class="row">
+        <div class="row mb-3">
             <h1>Pinetable</h1>
-            <input type="text" oninput="onQuickFilterChanged()" id="quickFilter" placeholder="Search for Anything">
+            <p>Instructions and info goes here.</p>
         </div>
-        <div class="row">
+
+        <div class="row mb-3">
+
+            <div class="col-sm">
+                <input style="width:100%;" type="text" oninput="onQuickFilterChanged()" id="quickFilter"
+                    placeholder="Search for Anything">
+            </div>
+
+            <div class="col-sm">
+                <select id="multiple" multiple onchange="distribFilter()">
+                    <option value="INT">INT</option>
+                    <option value="TMV">TMV</option>
+                    <option value="ART">ART</option>
+                </select>
+            </div>
+
+        </div>
+        <div class="row mb-3">
             <div id="ag-table" style="height: 600px; width:100%;" class="ag-theme-balham"></div>
         </div>
     </div>
@@ -32,6 +53,10 @@
         crossorigin="anonymous"></script>
 
     <script>
+        var select = new SlimSelect({
+            select: '#multiple'
+        });
+
         const columnDefs = [
             { field: "program", sortable: true, pinned: 'left', checkboxSelection: true },
             { field: "num", sortable: true, pinned: 'left' },
@@ -66,6 +91,32 @@
         function onQuickFilterChanged() {
             gridOptions.api.setQuickFilter(document.getElementById('quickFilter').value);
         }
+
+        // TODO filters do not reset
+        // TODO multiple distribs with OR matching
+        // TODO maybe turn into fully fledged custom filter?
+        function distribFilter() {
+            // get selected distribs
+            selected = select.selected();
+            console.log(selected);
+
+            // clear filter
+            if (!Array.isArray(selected) || !selected.length) {
+                console.log('clear');
+                gridOptions.api.setFilterModel(null);
+                // gridOptions.api.refreshCells();
+                // gridOptions.api.onFilterChanged();
+            };
+
+            // build filter
+            var hardcodedFilter = {
+                distribs: { type: 'contains', filter: 'ART' },
+            };
+
+            // apply filter
+            gridOptions.api.setFilterModel(hardcodedFilter);
+
+        };
 
         function populate_ag(data) {
             const gridDiv = document.querySelector('#ag-table');
