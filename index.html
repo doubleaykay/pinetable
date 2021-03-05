@@ -35,9 +35,16 @@
 
             <div class="col-sm">
                 <select id="multiple" multiple onchange="distribFilter()">
-                    <option value="INT">INT</option>
-                    <option value="TMV">TMV</option>
                     <option value="ART">ART</option>
+                    <option value="LIT">LIT</option>
+                    <option value="TMV">TMV</option>
+                    <option value="INT">INT</option>
+                    <option value="SOC">SOC</option>
+                    <option value="QDS">QDS</option>
+                    <option value="SCI">SCI</option>
+                    <option value="SLA">SLA</option>
+                    <option value="TAS">TAS</option>
+                    <option value="TLA">TLA</option>
                 </select>
             </div>
 
@@ -71,7 +78,7 @@
             { field: "room" },
             { field: "building" },
             { field: "world_culture" },
-            { field: "distribs" },
+            { field: "distribs", filter: 'agTextColumnFilter' },
             { field: "limit", sortable: true },
             { field: "enrollment", sortable: true },
             { field: "status" },
@@ -92,30 +99,43 @@
             gridOptions.api.setQuickFilter(document.getElementById('quickFilter').value);
         }
 
-        // TODO filters do not reset
-        // TODO multiple distribs with OR matching
         // TODO maybe turn into fully fledged custom filter?
         function distribFilter() {
             // get selected distribs
             selected = select.selected();
-            console.log(selected);
 
-            // clear filter
             if (!Array.isArray(selected) || !selected.length) {
-                console.log('clear');
+                // clear filter
                 gridOptions.api.setFilterModel(null);
-                // gridOptions.api.refreshCells();
-                // gridOptions.api.onFilterChanged();
+            } else if (selected.length == 1) {
+                // one distrib selected
+                var customFilter = {
+                    distribs: { type: 'contains', filter: selected[0] },
+                };
+                // apply filter
+                gridOptions.api.setFilterModel(customFilter);
+            } else {
+                // two or more distribs selected
+                var customFilter = {
+                    distribs: {
+                        filterType: "text",
+                        operator: "OR"
+                    }
+                };
+
+                i = 1;
+                selected.forEach(e => {
+                    customFilter.distribs['condition' + String(i)] = {
+                        filterType: "text",
+                        type: "contains",
+                        filter: e
+                    };
+                    i = i + 1;
+                });
+
+                // apply filter
+                gridOptions.api.setFilterModel(customFilter);
             };
-
-            // build filter
-            var hardcodedFilter = {
-                distribs: { type: 'contains', filter: 'ART' },
-            };
-
-            // apply filter
-            gridOptions.api.setFilterModel(hardcodedFilter);
-
         };
 
         function populate_ag(data) {
